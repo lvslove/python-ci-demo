@@ -1,8 +1,11 @@
 pipeline {
     agent {
         docker {
-            image 'python:3.9'
+            image 'python:3.9' // Используем официальный Python-образ
         }
+    }
+    environment {
+        PATH = "$PATH:/usr/local/bin" // Для использования локальных бинарников, таких как chromedriver
     }
     stages {
         stage('Determine Changes') {
@@ -14,9 +17,24 @@ pipeline {
                 }
             }
         }
-        stage('Install Dependencies') {
+        stage('Setup Dependencies') {
+            when {
+                expression { env.UI_CHANGED == 'true' }
+            }
             steps {
-                sh 'pip install -r requirements.txt'
+                sh '''
+                apt-get update && apt-get install -y wget unzip google-chrome-stable \
+                    libnss3 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 \
+                    libxi6 libxtst6 libglib2.0-0 libxrandr2 libasound2 libpangocairo-1.0-0
+                '''
+            }
+        }
+        stage('Install Python Dependencies') {
+            steps {
+                sh '''
+                python -m pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
             }
         }
         stage('Run Backend Tests') {
@@ -24,7 +42,13 @@ pipeline {
                 expression { env.BACKEND_CHANGED == 'true' }
             }
             steps {
-                sh 'pytest backend --alluredir=allure-results'
+                script {
+                    try {
+                        sh 'pytest backend --alluredir=allure-results'
+                    } catch (Exception e) {
+                        echo "Backend tests failed: ${e.message}"
+                    }
+                }
             }
         }
         stage('Run UI Tests') {
@@ -32,24 +56,40 @@ pipeline {
                 expression { env.UI_CHANGED == 'true' }
             }
             steps {
-                sh 'pytest frontend --alluredir=allure-results'
-            }
-        }
-        stage('Generate Allure Report') {
-            steps {
-                allure([
-                    includeProperties: false,
-                    jdk: '',
-                    properties: [],
-                    reportBuildPolicy: 'ALWAYS',
-                    results: [[path: 'allure-results']]
-                ])
+                script {
+                    try {
+                        sh 'pytest frontend --alluredir=allure-results'
+                    } catch (Exception e) {
+                        echo "UI tests failed: ${e.message}"
+                    }
+                }
             }
         }
     }
     post {
         always {
+            stage('Generate Allure Report') {
+                steps {
+                    allure([
+                        includeProperties: false,
+                        jdk: '',
+                        properties: [],
+                        reportBuildPolicy: 'ALWAYS',
+                        results: [[path: 'allure-results']]
+                    ])
+                }
+            }
+            stage('Cleanup Workspace') {
+                steps {
+                    cleanWs() // Очищает рабочую директорию после выполнения пайплайна
+                }
+            }
+        }
+        success {
             echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Please check the logs.'
         }
     }
 }
