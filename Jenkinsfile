@@ -13,6 +13,7 @@ pipeline {
                 sh 'python3 --version'
                 sh 'pip3 --version'
             }
+        }
 
         stage('Install Dependencies') {
             steps {
