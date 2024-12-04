@@ -47,7 +47,11 @@ pipeline {
                 '''
             }
         }
-        stage('Setup Allure CLI') {
+    }
+    post {
+        always {
+            echo 'Generating Allure report...'
+            stage('Setup Allure CLI') {
             steps {
                 sh '''
                 #!/bin/bash
@@ -60,11 +64,7 @@ pipeline {
                 allure --version
                 '''
             }
-        }
-    }
-    post {
-        always {
-            echo 'Generating Allure report...'
+    }   
             // Генерация Allure отчета
             allure([
                 includeProperties: false,
