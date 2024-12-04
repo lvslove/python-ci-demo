@@ -6,6 +6,8 @@ pipeline {
     }
     environment {
         PATH = "$PATH:/usr/local/bin"
+        JAVA_HOME = '/usr/lib/jvm/java-11-openjdk-amd64'
+        PATH = "$JAVA_HOME/bin:$PATH"
     }
     stages {
         stage('Determine Changes') {
@@ -26,6 +28,13 @@ pipeline {
                 apt-get update && apt-get install -y wget unzip google-chrome-stable \
                     libnss3 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 \
                     libxi6 libxtst6 libglib2.0-0 libxrandr2 libasound2 libpangocairo-1.0-0
+                '''
+            }
+        }
+        stage('Install Java') {
+            steps {
+                sh '''
+                apt-get update && apt-get install -y default-jre
                 '''
             }
         }
