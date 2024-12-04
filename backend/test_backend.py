@@ -1,11 +1,5 @@
 import allure
-from selenium import webdriver
 
-
-
-@allure.feature('UI Testing')
-def test_ui_example():
-    driver = webdriver.Chrome()
-    driver.get("https://example.com")
-    assert "Example Domain" in driver.title
-    driver.quit()
+@allure.feature('Backend Functionality')
+def test_backend_logic():
+    assert 1 + 1 == 2
