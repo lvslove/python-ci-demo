@@ -5,9 +5,8 @@ pipeline {
         }
     }
     environment {
-        PATH = "$PATH:/usr/local/bin"
         JAVA_HOME = '/usr/lib/jvm/java-11-openjdk-amd64'
-        PATH = "$JAVA_HOME/bin:$PATH"
+        PATH = "${JAVA_HOME}/bin:/usr/local/bin:${env.PATH}"
     }
     stages {
         stage('Determine Changes') {
