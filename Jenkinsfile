@@ -1,11 +1,11 @@
 pipeline {
     agent {
         docker {
-            image 'python:3.9' // Используем официальный Python-образ
+            image 'python:3.9'
         }
     }
     environment {
-        PATH = "$PATH:/usr/local/bin" // Для использования локальных бинарников, таких как chromedriver
+        PATH = "$PATH:/usr/local/bin"
     }
     stages {
         stage('Determine Changes') {
@@ -68,22 +68,18 @@ pipeline {
     }
     post {
         always {
-            stage('Generate Allure Report') {
-                steps {
-                    allure([
-                        includeProperties: false,
-                        jdk: '',
-                        properties: [],
-                        reportBuildPolicy: 'ALWAYS',
-                        results: [[path: 'allure-results']]
-                    ])
-                }
+            // Генерация Allure-отчета
+            script {
+                allure([
+                    includeProperties: false,
+                    jdk: '',
+                    properties: [],
+                    reportBuildPolicy: 'ALWAYS',
+                    results: [[path: 'allure-results']]
+                ])
             }
-            stage('Cleanup Workspace') {
-                steps {
-                    cleanWs() // Очищает рабочую директорию после выполнения пайплайна
-                }
-            }
+            // Очистка рабочей директории
+            cleanWs()
         }
         success {
             echo 'Pipeline completed successfully!'
