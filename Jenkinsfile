@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Setup Environment') {
             steps {
-                // Установка Python и pip
+                // Установка Python, pip и virtualenv
                 sh '''
                 apt-get update
                 apt-get install -y python3 python3-pip python3-venv
@@ -15,8 +15,9 @@ pipeline {
         }
         stage('Create Virtual Environment') {
             steps {
-                // Создание виртуального окружения
+                // Создание виртуального окружения с использованием bash
                 sh '''
+                #!/bin/bash
                 python3 -m venv venv
                 source venv/bin/activate
                 '''
@@ -24,8 +25,9 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                // Установка зависимостей в виртуальном окружении
+                // Установка зависимостей в виртуальном окружении с использованием bash
                 sh '''
+                #!/bin/bash
                 source venv/bin/activate
                 pip install -r requirements.txt
                 '''
@@ -35,6 +37,7 @@ pipeline {
             steps {
                 // Запуск backend-тестов в виртуальном окружении
                 sh '''
+                #!/bin/bash
                 source venv/bin/activate
                 pytest backend --alluredir=target/allure-results
                 '''
@@ -44,6 +47,7 @@ pipeline {
             steps {
                 // Запуск UI-тестов в виртуальном окружении
                 sh '''
+                #!/bin/bash
                 source venv/bin/activate
                 pytest frontend --alluredir=target/allure-results
                 '''
@@ -53,12 +57,16 @@ pipeline {
             steps {
                 // Установка Allure CLI
                 sh '''
+                #!/bin/bash
                 curl -o allure.zip -L https://github.com/allure-framework/allure2/releases/latest/download/allure-commandline.zip
                 unzip -o allure.zip -d allure
                 export PATH=$PATH:$PWD/allure/bin
                 '''
                 // Проверка установки Allure CLI
-                sh 'allure --version'
+                sh '''
+                #!/bin/bash
+                allure --version
+                '''
             }
         }
     }
@@ -80,7 +88,10 @@ pipeline {
             steps {
                 echo 'Cleaning up workspace...'
                 // Удаление временных файлов или папок, если требуется
-                sh 'rm -rf venv allure.zip'
+                sh '''
+                #!/bin/bash
+                rm -rf venv allure.zip
+                '''
             }
         }
     }
