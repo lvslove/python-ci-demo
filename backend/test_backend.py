@@ -1,7 +1,6 @@
 import allure
 from selenium import webdriver
 
-
 @allure.feature('UI Testing')
 def test_ui_example():
     driver = webdriver.Chrome()
