@@ -1,5 +1,2 @@
 pytest
-flake8
 allure-pytest
-selenium
-webdriver-manager
