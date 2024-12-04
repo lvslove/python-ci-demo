@@ -51,8 +51,6 @@ pipeline {
     post {
         always {
             echo 'Generating Allure report...'
-            stage('Setup Allure CLI') {
-            steps {
                 sh '''
                 #!/bin/bash
                 curl -o allure.zip -L https://github.com/allure-framework/allure2/releases/latest/download/allure-commandline.zip
@@ -63,8 +61,6 @@ pipeline {
                 #!/bin/bash
                 allure --version
                 '''
-            }
-    }   
             // Генерация Allure отчета
             allure([
                 includeProperties: false,
