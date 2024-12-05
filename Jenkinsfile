@@ -76,9 +76,8 @@ pipeline {
                             reportBuildPolicy: 'ALWAYS',
                             results: [[path: 'target/allure-results']]
                         ])
-                else {
+                } else {
                     error 'No Allure results found. Tests might not have run.'
-                    }
                 }
             }
         }
