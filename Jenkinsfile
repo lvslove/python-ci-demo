@@ -10,18 +10,23 @@ pipeline {
                 }
             }
         }
+        environment {
+            VENV_PATH = 'venv/bin'
+        }
         stage('Create Virtual Environment') {
             steps {
                 sh '''
                 #!/bin/bash
                 python3 -m venv venv
-                . venv/bin/activate
                 '''
             }
         }
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh '''
+                #!/bin/bash
+                $VENV_PATH/pip install -r requirements.txt
+                '''
             }
         }
         stage('Run flake') {
@@ -34,7 +39,10 @@ pipeline {
                 expression { env.BACKEND_CHANGED == 'true' }
             }
             steps {
-                sh 'pytest backend --alluredir=allure-results'
+                sh '''
+                #!/bin/bash
+                $VENV_PATH/pytest backend --alluredir=target/allure-results
+                '''
             }
         }
         stage('Run UI Tests') {
@@ -42,7 +50,10 @@ pipeline {
                 expression { env.UI_CHANGED == 'true' }
             }
             steps {
-                sh 'pytest frontend --alluredir=allure-results'
+                sh '''
+                #!/bin/bash
+                $VENV_PATH/pytest frontend --alluredir=target/allure-results
+                '''
             }
         }
     }
