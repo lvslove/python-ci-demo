@@ -31,7 +31,7 @@ pipeline {
         }
         stage('Run flake') {
             steps {
-                sh 'flacke8 .'
+                sh 'flake8 .'
             }
         }
         stage('Run Backend Tests') {
