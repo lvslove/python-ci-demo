@@ -16,7 +16,7 @@ pipeline {
                 sh '''
                 #!/bin/bash
                 python3 -m venv venv
-                source venv/bin/activate
+                . venv/bin/activate
                 '''
             }
         }
@@ -24,7 +24,7 @@ pipeline {
             steps {
                 sh '''
                 #!/bin/bash
-                source venv/bin/activate
+                . venv/bin/activate
                 pip install -r requirements.txt
                 '''
             }
@@ -33,7 +33,7 @@ pipeline {
             steps {
                 sh '''
                 #!/bin/bash
-                source venv/bin/activate
+                . venv/bin/activate
                 pytest backend --alluredir=target/allure-results
                 '''
             }
@@ -42,7 +42,7 @@ pipeline {
             steps {
                 sh '''
                 #!/bin/bash
-                source venv/bin/activate
+                . venv/bin/activate
                 pytest frontend --alluredir=target/allure-results
                 '''
             }
@@ -51,7 +51,7 @@ pipeline {
     post {
         always {
             echo 'Generating Allure report...'
-                sh '''
+            sh '''
                 #!/bin/bash
                 curl -o allure.zip -L https://github.com/allure-framework/allure2/releases/latest/download/allure-commandline.zip
                 unzip -o allure.zip -d allure
@@ -61,18 +61,15 @@ pipeline {
                 #!/bin/bash
                 allure --version
                 '''
-            // Генерация Allure отчета
-            allure([
-                includeProperties: false,
-                jdk: '',
-                properties: [],
-                reportBuildPolicy: 'ALWAYS',
-                results: [[path: 'target/allure-results']]
-            ])
+
+            sh '''
+            #!/bin/bash
+            allure generate target/allure-results --clean -o target/allure-report
+            '''
+            echo 'Allure report generated at target/allure-report'
         }
         cleanup {
             echo 'Cleaning up workspace...'
-            // Удаление временных файлов или папок
             sh '''
             #!/bin/bash
             rm -rf venv allure.zip
