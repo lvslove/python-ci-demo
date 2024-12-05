@@ -1,50 +1,39 @@
 pipeline {
     agent any
     stages {
-        stage('Setup Environment') {
+        stage('Determine Changes') {
             steps {
-                sh '''
-                apt-get update
-                apt-get install -y python3 python3-pip python3-venv
-                '''
-                sh 'python3 --version'
-                sh 'pip3 --version'
-            }
-        }
-        stage('Create Virtual Environment') {
-            steps {
-                sh '''
-                #!/bin/bash
-                python3 -m venv venv
-                . venv/bin/activate
-                '''
+                script {
+                    def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
+                    env.UI_CHANGED = changes.contains('frontend/')
+                    env.BACKEND_CHANGED = changes.contains('backend/')
+                }
             }
         }
         stage('Install Dependencies') {
             steps {
-                sh '''
-                #!/bin/bash
-                . venv/bin/activate
-                pip install -r requirements.txt
-                '''
+                sh 'pip install -r requirements.txt'
+            }
+        }
+        tage('Run flake') {
+            steps {
+                sh 'flacke8 .'
             }
         }
         stage('Run Backend Tests') {
+            when {
+                expression { env.BACKEND_CHANGED == 'true' }
+            }
             steps {
-                sh '''
-                #!/bin/bash
-                . venv/bin/activate
-                pytest backend --alluredir=target/allure-results
-                '''
+                sh 'pytest backend --alluredir=allure-results'
             }
         }
         stage('Run UI Tests') {
+            when {
+                expression { env.UI_CHANGED == 'true' }
+            }
             steps {
-                sh '''
-                #!/bin/bash
-                . venv/bin/activate
-                pytest frontend --alluredir=target/allure-results
-                '''
+                sh 'pytest frontend --alluredir=allure-results'
             }
         }
     }
