@@ -10,6 +10,15 @@ pipeline {
                 }
             }
         }
+        stage('Create Virtual Environment') {
+            steps {
+                sh '''
+                #!/bin/bash
+                python3 -m venv venv
+                . venv/bin/activate
+                '''
+            }
+        }
         stage('Install Dependencies') {
             steps {
                 sh 'pip install -r requirements.txt'
