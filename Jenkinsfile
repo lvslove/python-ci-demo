@@ -31,7 +31,10 @@ pipeline {
         }
         stage('Run flake') {
             steps {
-                sh 'VENV_PATH/flake8 .'
+                sh '''
+                #!/bin/bash
+                VENV_PATH/flake8 .
+                '''
             }
         }
         stage('Run Backend Tests') {
