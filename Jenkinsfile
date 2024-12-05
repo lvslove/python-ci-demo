@@ -33,7 +33,7 @@ pipeline {
             steps {
                 sh '''
                 #!/bin/bash
-                $VENV_PATH/flake8 .
+                $VENV_PATH/pytest --flake8 . --alluredir=target/allure-results
                 '''
             }
         }
@@ -86,6 +86,7 @@ pipeline {
             sh '''
             #!/bin/bash
             rm -rf venv allure.zip
+            rm -rf target/allure-results
             '''
         }
     }
