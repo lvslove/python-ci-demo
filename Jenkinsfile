@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        VENV_PATH = 'venv/bin'
+    }
     stages {
         stage('Determine Changes') {
             steps {
@@ -9,9 +12,6 @@ pipeline {
                     env.BACKEND_CHANGED = changes.contains('backend/')
                 }
             }
-        }
-        environment {
-            VENV_PATH = 'venv/bin'
         }
         stage('Create Virtual Environment') {
             steps {
