@@ -33,7 +33,7 @@ pipeline {
             steps {
                 sh '''
                 #!/bin/bash
-                VENV_PATH/flake8 .
+                $VENV_PATH/flake8 .
                 '''
             }
         }
@@ -62,14 +62,25 @@ pipeline {
     }
     post {
         always {
-            echo 'Generating Allure report...'
-            allure([
-                    includeProperties: false,
-                    jdk: '',
-                    properties: [],
-                    reportBuildPolicy: 'ALWAYS',
-                    results: [[path: 'target/allure-results']]
-                ])
+            script {
+                def resultsExist = sh(returnStatus: true, script: '''
+                [ -d target/allure-results ] && [ "$(ls -A target/allure-results)" ]
+                ''') == 0
+
+                if (resultsExist) {
+                    echo 'Allure results found. Generating report...'
+                    allure([
+                            includeProperties: false,
+                            jdk: '',
+                            properties: [],
+                            reportBuildPolicy: 'ALWAYS',
+                            results: [[path: 'target/allure-results']]
+                        ])
+                else {
+                    error 'No Allure results found. Tests might not have run.'
+                    }
+                }
+            }
         }
         cleanup {
             echo 'Cleaning up workspace...'
