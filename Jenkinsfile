@@ -15,7 +15,7 @@ pipeline {
                 sh 'pip install -r requirements.txt'
             }
         }
-        tage('Run flake') {
+        stage('Run flake') {
             steps {
                 sh 'flacke8 .'
             }
