@@ -53,12 +53,25 @@ pipeline {
             echo 'Generating Allure report...'
             sh '''
                 #!/bin/bash
-                curl -o allure.zip -L https://github.com/allure-framework/allure2/releases/latest/download/allure-commandline.zip
+                echo "Downloading Allure CLI..."
+                curl -L -o allure.zip https://github.com/allure-framework/allure2/releases/latest/download/allure-commandline.zip
+                
+                # Проверяем, успешно ли скачан архив
+                if [ $? -ne 0 ] || [ ! -f allure.zip ]; then
+                    echo "Failed to download Allure CLI. Exiting."
+                    exit 1
+                fi
+
+                echo "Unzipping Allure CLI..."
                 unzip -o allure.zip -d allure
+                
+                # Проверяем успешность распаковки
+                if [ $? -ne 0 ]; then
+                    echo "Failed to unzip Allure CLI. Exiting."
+                    exit 1
+                fi
+
                 export PATH=$PATH:$PWD/allure/bin
-                '''
-                sh '''
-                #!/bin/bash
                 allure --version
                 '''
 
