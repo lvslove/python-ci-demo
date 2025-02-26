@@ -5,12 +5,17 @@ pipeline {
         DOCKER_IMAGE = 'python:3.9'
         CONTAINER_NAME = 'python-tests-container'
         ALLURE_RESULTS_DIR = 'target/allure-results'
+        VENV_PATH = '/app/venv/bin'
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Determine Changes') {
             steps {
-                git 'https://github.com/lvslove/python-ci-demo.git'
+                script {
+                    def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
+                    env.UI_CHANGED = changes.contains('frontend/')
+                    env.BACKEND_CHANGED = changes.contains('backend/')
+                }
             }
         }
 
@@ -23,11 +28,20 @@ pipeline {
             }
         }
 
+        stage('Create Virtual Environment') {
+            steps {
+                sh '''
+                echo "Создаем виртуальное окружение..."
+                docker exec $CONTAINER_NAME python3 -m venv /app/venv
+                '''
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 sh '''
                 echo "Устанавливаем зависимости..."
-                docker exec $CONTAINER_NAME pip install --no-cache-dir -r requirements.txt
+                docker exec $CONTAINER_NAME $VENV_PATH/pip install --no-cache-dir -r requirements.txt
                 '''
             }
         }
@@ -36,16 +50,31 @@ pipeline {
             steps {
                 sh '''
                 echo "Запускаем линтер..."
-                docker exec $CONTAINER_NAME pytest --flake8 . --alluredir=$ALLURE_RESULTS_DIR
+                docker exec $CONTAINER_NAME $VENV_PATH/pytest --flake8 . --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Backend Tests') {
+            when {
+                expression { env.BACKEND_CHANGED == 'true' }
+            }
             steps {
                 sh '''
-                echo "Запускаем тесты..."
-                docker exec $CONTAINER_NAME pytest --alluredir=$ALLURE_RESULTS_DIR
+                echo "Запускаем backend-тесты..."
+                docker exec $CONTAINER_NAME $VENV_PATH/pytest backend --alluredir=$ALLURE_RESULTS_DIR
+                '''
+            }
+        }
+
+        stage('Run UI Tests') {
+            when {
+                expression { env.UI_CHANGED == 'true' }
+            }
+            steps {
+                sh '''
+                echo "Запускаем UI-тесты..."
+                docker exec $CONTAINER_NAME $VENV_PATH/pytest frontend --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
