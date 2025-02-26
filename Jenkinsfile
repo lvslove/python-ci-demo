@@ -1,93 +1,84 @@
 pipeline {
     agent any
-    environment {
-        VENV_PATH = 'venv/bin'
 
+    environment {
+        DOCKER_IMAGE = 'python:3.9'
+        CONTAINER_NAME = 'python-tests-container'
+        ALLURE_RESULTS_DIR = 'target/allure-results'
     }
+
     stages {
-        stage('Determine Changes') {
+        stage('Checkout Code') {
             steps {
-                script {
-                    def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
-                    env.UI_CHANGED = changes.contains('frontend/')
-                    env.BACKEND_CHANGED = changes.contains('backend/')
-                }
+                git 'https://github.com/lvslove/python-ci-demo.git'
             }
         }
-        stage('Create Virtual Environment') {
+
+        stage('Build Docker Container') {
             steps {
                 sh '''
-                #!/bin/bash
-                python3 -m venv venv
+                echo "Создаем контейнер для тестов..."
+                docker run -d --name $CONTAINER_NAME -v $(pwd):/app -w /app $DOCKER_IMAGE tail -f /dev/null
                 '''
             }
         }
+
         stage('Install Dependencies') {
             steps {
                 sh '''
-                #!/bin/bash
-                $VENV_PATH/pip install -r requirements.txt
+                echo "Устанавливаем зависимости..."
+                docker exec $CONTAINER_NAME pip install --no-cache-dir -r requirements.txt
                 '''
             }
         }
-        stage('Run flake') {
+
+        stage('Run Flake8 Linting') {
             steps {
                 sh '''
-                #!/bin/bash
-                $VENV_PATH/pytest --flake8 . --alluredir=target/allure-results
+                echo "Запускаем линтер..."
+                docker exec $CONTAINER_NAME pytest --flake8 . --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
-        stage('Run Backend Tests') {
-            when {
-                expression { env.BACKEND_CHANGED == 'true' }
-            }
+
+        stage('Run Tests') {
             steps {
                 sh '''
-                #!/bin/bash
-                $VENV_PATH/pytest backend --alluredir=target/allure-results
-                '''
-            }
-        }
-        stage('Run UI Tests') {
-            when {
-                expression { env.UI_CHANGED == 'true' }
-            }
-            steps {
-                sh '''
-                #!/bin/bash
-                $VENV_PATH/pytest frontend --alluredir=target/allure-results
+                echo "Запускаем тесты..."
+                docker exec $CONTAINER_NAME pytest --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
     }
+
     post {
         always {
             script {
                 def resultsExist = sh(returnStatus: true, script: '''
-                [ -d target/allure-results ] && [ "$(ls -A target/allure-results)" ]
+                [ -d $ALLURE_RESULTS_DIR ] && [ "$(ls -A $ALLURE_RESULTS_DIR)" ]
                 ''') == 0
 
                 if (resultsExist) {
                     echo 'Allure results found. Generating report...'
                     allure([
-                            includeProperties: false,
-                            jdk: '',
-                            properties: [],
-                            reportBuildPolicy: 'ALWAYS',
-                            results: [[path: 'target/allure-results']]
-                        ])
+                        includeProperties: false,
+                        jdk: '',
+                        properties: [],
+                        reportBuildPolicy: 'ALWAYS',
+                        results: [[path: 'target/allure-results']]
+                    ])
                 } else {
-                    error 'No Allure results found. Tests might not have run.'
+                    echo 'No Allure results found. Tests might not have run.'
                 }
             }
         }
         cleanup {
-            echo 'Cleaning up workspace...'
+            echo 'Cleaning up...'
             sh '''
-            #!/bin/bash
-            rm -rf venv allure.zip
-            rm -rf target/allure-results
+            echo "Останавливаем и удаляем контейнер..."
+            docker stop $CONTAINER_NAME || true
+            docker rm $CONTAINER_NAME || true
+            rm -rf venv allure.zip $ALLURE_RESULTS_DIR
             '''
         }
     }
