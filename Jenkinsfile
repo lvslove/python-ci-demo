@@ -2,6 +2,7 @@ pipeline {
     agent any
     environment {
         VENV_PATH = 'venv/bin'
+
     }
     stages {
         stage('Determine Changes') {
