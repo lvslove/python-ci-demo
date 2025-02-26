@@ -12,8 +12,6 @@ pipeline {
                     env.BACKEND_CHANGED = changes.contains('backend/')
                 }
             }
-
-
         }
         stage('Create Virtual Environment') {
             steps {
