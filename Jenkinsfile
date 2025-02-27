@@ -2,11 +2,13 @@ pipeline {
     agent any
 
     environment {
-        CONTAINER_NAME = 'python-tests-container-2'
-        ALLURE_RESULTS_DIR = 'target/allure-results'
-        REPO = 'lvslove/python-ci-demo'  // Формат для GitHub API
-        CREDENTIALS_ID = 'github_slalov'  // ID GitHub-токена в Jenkins Credentials
-    }
+    CONTAINER_NAME = 'python-tests-container-2'
+    ALLURE_RESULTS_DIR = 'target/allure-results'
+    REPO = 'lvslove/python-ci-demo'  // Формат для GitHub API
+    CREDENTIALS_ID = 'github_slalov'  // ID GitHub-токена в Jenkins Credentials
+    ACCOUNT = 'lvslove'  // GitHub username / organization
+}
+
 
     stages {
         stage('Checkout') {
@@ -14,8 +16,7 @@ pipeline {
                 withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
                     sh '''
                     echo "Клонируем репозиторий..."
-                    git clone https://$GITHUB_PAT@github.com/$REPO.git /app
-                    cd /app
+                    git clone https://$GITHUB_PAT@github.com/$REPO.git
                     git checkout main
                     '''
                     
@@ -77,35 +78,38 @@ pipeline {
             }
         }
 
-        success {
-            withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
-                script {
-                    githubNotify(
-                        context: 'Jenkins',
-                        description: 'Build successful',
-                        status: 'SUCCESS',
-                        repo: env.REPO,
-                        credentialsId: env.CREDENTIALS_ID,
-                        sha: env.GIT_COMMIT
-                    )
+            success {
+                withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
+                    script {
+                        githubNotify(
+                            context: 'Jenkins',
+                            description: 'Build successful',
+                            status: 'SUCCESS',
+                            repo: env.REPO,
+                            credentialsId: env.CREDENTIALS_ID,
+                            sha: env.GIT_COMMIT,
+                            account: env.ACCOUNT  // Добавляем учетную запись GitHub
+                        )
+                    }
                 }
             }
-        }
 
-        failure {
-            withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
-                script {
-                    githubNotify(
-                        context: 'Jenkins',
-                        description: 'Build failed',
-                        status: 'FAILURE',
-                        repo: env.REPO,
-                        credentialsId: env.CREDENTIALS_ID,
-                        sha: env.GIT_COMMIT
-                    )
+            failure {
+                withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
+                    script {
+                        githubNotify(
+                            context: 'Jenkins',
+                            description: 'Build failed',
+                            status: 'FAILURE',
+                            repo: env.REPO,
+                            credentialsId: env.CREDENTIALS_ID,
+                            sha: env.GIT_COMMIT,
+                            account: env.ACCOUNT  // Добавляем учетную запись GitHub
+                        )
+                    }
                 }
             }
-        }
+
 
         cleanup {
             echo 'Cleaning up...'
