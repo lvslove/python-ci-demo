@@ -12,6 +12,7 @@ pipeline {
             steps {
                 script {
                     echo "Очистка рабочей директории перед билдом..."
+                    chmod -R 777 /var/jenkins_home/workspace/test
                     deleteDir()
                 }
             }
@@ -38,7 +39,6 @@ pipeline {
         stage('Build Docker Container') {
             steps {
                 sh '''
-                chmod -R 777 /var/jenkins_home/workspace/test
                 echo "Создаем контейнер для тестов..."
                 docker run -d --rm --name python-tests-container -v  /var/lib/docker/volumes/jenkins-data/_data/workspace/test:/app -w /app python:3.9 tail -f /dev/null
 
