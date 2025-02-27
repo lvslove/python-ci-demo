@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     echo "Очистка рабочей директории перед билдом..."
-                    chmod -R 777 /var/jenkins_home/workspace/test
+                    sh 'chmod -R 777 /var/jenkins_home/workspace/test'
                     deleteDir()
                 }
             }
