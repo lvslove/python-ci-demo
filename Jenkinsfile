@@ -5,16 +5,32 @@ pipeline {
         DOCKER_IMAGE = 'python:3.9'
         CONTAINER_NAME = 'python-tests-container'
         ALLURE_RESULTS_DIR = 'target/allure-results'
-        VENV_PATH = '/app/venv/bin'
     }
 
     stages {
-        stage('Determine Changes') {
+        stage('Cleanup Workspace') {
             steps {
                 script {
+                    echo "Очистка рабочей директории перед билдом..."
+                    deleteDir()
+                }
+            }
+        }
+
+        stage('Checkout Repository') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Determine Changes') {
+            steps {
+                sh 'ls -a'
+                sh'pwd'
+                script {
                     def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
-                    env.UI_CHANGED = changes.contains('frontend/')
-                    env.BACKEND_CHANGED = changes.contains('backend/')
+                    env.UI_CHANGED = changes.contains('frontend/').toString()
+                    env.BACKEND_CHANGED = changes.contains('backend/').toString()
                 }
             }
         }
@@ -22,17 +38,10 @@ pipeline {
         stage('Build Docker Container') {
             steps {
                 sh '''
+                chmod -R 777 /var/jenkins_home/workspace/test
                 echo "Создаем контейнер для тестов..."
-                docker run -d --name $CONTAINER_NAME -v $(pwd):/app -w /app $DOCKER_IMAGE tail -f /dev/null
-                '''
-            }
-        }
+                docker run -d --rm --name python-tests-container -v  /var/lib/docker/volumes/jenkins-data/_data/workspace/test:/app -w /app python:3.9 tail -f /dev/null
 
-        stage('Create Virtual Environment') {
-            steps {
-                sh '''
-                echo "Создаем виртуальное окружение..."
-                docker exec $CONTAINER_NAME python3 -m venv /app/venv
                 '''
             }
         }
@@ -40,8 +49,11 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
+                echo "Проверяем файлы внутри контейнера..."
+                docker exec $CONTAINER_NAME ls -la /app
+                
                 echo "Устанавливаем зависимости..."
-                docker exec $CONTAINER_NAME $VENV_PATH/pip install --no-cache-dir -r requirements.txt
+                docker exec $CONTAINER_NAME pip install --no-cache-dir -r /app/requirements.txt
                 '''
             }
         }
@@ -50,7 +62,8 @@ pipeline {
             steps {
                 sh '''
                 echo "Запускаем линтер..."
-                docker exec $CONTAINER_NAME $VENV_PATH/pytest --flake8 . --alluredir=$ALLURE_RESULTS_DIR
+                mkdir -p $ALLURE_RESULTS_DIR
+                docker exec $CONTAINER_NAME pytest --flake8 . --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
@@ -62,7 +75,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Запускаем backend-тесты..."
-                docker exec $CONTAINER_NAME $VENV_PATH/pytest backend --alluredir=$ALLURE_RESULTS_DIR
+                docker exec $CONTAINER_NAME pytest backend --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
@@ -74,7 +87,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Запускаем UI-тесты..."
-                docker exec $CONTAINER_NAME $VENV_PATH/pytest frontend --alluredir=$ALLURE_RESULTS_DIR
+                docker exec $CONTAINER_NAME pytest frontend --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
@@ -107,7 +120,7 @@ pipeline {
             echo "Останавливаем и удаляем контейнер..."
             docker stop $CONTAINER_NAME || true
             docker rm $CONTAINER_NAME || true
-            rm -rf venv allure.zip $ALLURE_RESULTS_DIR
+            rm -rf allure.zip $ALLURE_RESULTS_DIR
             '''
         }
     }
