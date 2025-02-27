@@ -21,7 +21,7 @@ pipeline {
         stage('Build Docker Container') {
             steps {
                 sh '''
-                echo $env.REPO $env.CREDENTIALS_ID $env.GIT_COMMIT
+                echo $REPO $CREDENTIALS_ID $GIT_COMMIT
                 echo "Создаем контейнер для тестов..."
                 docker run -d --rm --name $CONTAINER_NAME -v $WORKSPACE:/app -w /app python:3.9 tail -f /dev/null
                 '''
