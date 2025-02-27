@@ -1,5 +1,6 @@
 import allure
 
+
 @allure.feature('Backend Functionality')
 def test_backend_logic():
-    assert 1 + 1 == 3
+    assert (1 + 1) == 3
