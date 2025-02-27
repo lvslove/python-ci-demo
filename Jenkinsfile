@@ -2,21 +2,18 @@ pipeline {
     agent any
 
     environment {
-        CONTAINER_NAME = 'python-tests-container-МОЕИМЯ'
+        CONTAINER_NAME = 'python-tests-container-2'
         ALLURE_RESULTS_DIR = 'target/allure-results'
-        JOB_NAME = ''
+        REPO = 'https://github.com/lvslove/python-ci-demo'  // Укажите ваш GitHub-репозиторий
+        CREDENTIALS_ID = 'github-pat'  // ID GitHub-токена в Jenkins Credentials
     }
 
     stages {
-
-        stage('Determine Changes') {
+        stage('Checkout') {
             steps {
-                sh 'ls -a'
-                sh'pwd'
+                git url: 'https://github.com/lvslove/python-ci-demo.git', branch: 'main'
                 script {
-                    def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
-                    // env.UI_CHANGED = changes.contains('frontend/').toString()
-                    // env.BACKEND_CHANGED = changes.contains('backend/').toString()
+                    env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                 }
             }
         }
@@ -25,8 +22,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Создаем контейнер для тестов..."
-                docker run -d --rm --name $CONTAINER_NAME -v  /var/lib/docker/volumes/jenkins-data/_data/workspace/$JOB_NAME:/app -w /app python:3.9 tail -f /dev/null
-
+                docker run -d --rm --name $CONTAINER_NAME -v $WORKSPACE:/app -w /app python:3.9 tail -f /dev/null
                 '''
             }
         }
@@ -34,9 +30,6 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                echo "Проверяем файлы внутри контейнера..."
-                docker exec $CONTAINER_NAME ls -la /app
-                
                 echo "Устанавливаем зависимости..."
                 docker exec $CONTAINER_NAME pip install --no-cache-dir -r /app/requirements.txt
                 '''
@@ -75,13 +68,31 @@ pipeline {
                 }
             }
         }
-        
+
         success {
-            githubNotify context: 'Jenkins', description: 'Build successful', status: 'SUCCESS'
+            script {
+                githubNotify(
+                    context: 'Jenkins',
+                    description: 'Build successful',
+                    status: 'SUCCESS',
+                    repo: env.REPO,
+                    credentialsId: env.CREDENTIALS_ID,
+                    sha: env.GIT_COMMIT
+                )
+            }
         }
 
         failure {
-            githubNotify context: 'Jenkins', description: 'Build failed', status: 'FAILURE'
+            script {
+                githubNotify(
+                    context: 'Jenkins',
+                    description: 'Build failed',
+                    status: 'FAILURE',
+                    repo: env.REPO,
+                    credentialsId: env.CREDENTIALS_ID,
+                    sha: env.GIT_COMMIT
+                )
+            }
         }
 
         cleanup {
