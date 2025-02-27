@@ -5,7 +5,7 @@ pipeline {
         CONTAINER_NAME = 'python-tests-container-2'
         ALLURE_RESULTS_DIR = 'target/allure-results'
         REPO = 'lvslove/python-ci-demo'  // Формат для GitHub API
-        CREDENTIALS_ID = 'github-pat'  // ID GitHub-токена в Jenkins Credentials
+        CREDENTIALS_ID = 'github_slalov'  // ID GitHub-токена в Jenkins Credentials
     }
 
     stages {
