@@ -73,14 +73,17 @@ pipeline {
                 } else {
                     echo 'No Allure results found. Tests might not have run.'
                 }
-                success {
-                    githubNotify context: 'Jenkins', description: 'Build successful', status: 'SUCCESS'
-                }
-                failure {
-                    githubNotify context: 'Jenkins', description: 'Build failed', status: 'FAILURE'
-                }
             }
         }
+        
+        success {
+            githubNotify context: 'Jenkins', description: 'Build successful', status: 'SUCCESS'
+        }
+
+        failure {
+            githubNotify context: 'Jenkins', description: 'Build failed', status: 'FAILURE'
+        }
+
         cleanup {
             echo 'Cleaning up...'
             sh '''
