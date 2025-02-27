@@ -8,21 +8,6 @@ pipeline {
     }
 
     stages {
-        stage('Cleanup Workspace') {
-            steps {
-                script {
-                    echo "Очистка рабочей директории перед билдом..."
-                    sh 'chmod -R 777 /var/jenkins_home/workspace/test'
-                    deleteDir()
-                }
-            }
-        }
-
-        stage('Checkout Repository') {
-            steps {
-                checkout scm
-            }
-        }
 
         stage('Determine Changes') {
             steps {
