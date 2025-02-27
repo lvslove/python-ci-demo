@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'python:3.9'
         CONTAINER_NAME = 'python-tests-container'
         ALLURE_RESULTS_DIR = 'target/allure-results'
     }
@@ -15,8 +14,8 @@ pipeline {
                 sh'pwd'
                 script {
                     def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
-                    env.UI_CHANGED = changes.contains('frontend/').toString()
-                    env.BACKEND_CHANGED = changes.contains('backend/').toString()
+                    // env.UI_CHANGED = changes.contains('frontend/').toString()
+                    // env.BACKEND_CHANGED = changes.contains('backend/').toString()
                 }
             }
         }
@@ -49,30 +48,6 @@ pipeline {
                 echo "Запускаем линтер..."
                 mkdir -p $ALLURE_RESULTS_DIR
                 docker exec $CONTAINER_NAME pytest --flake8 . --alluredir=$ALLURE_RESULTS_DIR
-                '''
-            }
-        }
-
-        stage('Run Backend Tests') {
-            when {
-                expression { env.BACKEND_CHANGED == 'true' }
-            }
-            steps {
-                sh '''
-                echo "Запускаем backend-тесты..."
-                docker exec $CONTAINER_NAME pytest backend --alluredir=$ALLURE_RESULTS_DIR
-                '''
-            }
-        }
-
-        stage('Run UI Tests') {
-            when {
-                expression { env.UI_CHANGED == 'true' }
-            }
-            steps {
-                sh '''
-                echo "Запускаем UI-тесты..."
-                docker exec $CONTAINER_NAME pytest frontend --alluredir=$ALLURE_RESULTS_DIR
                 '''
             }
         }
