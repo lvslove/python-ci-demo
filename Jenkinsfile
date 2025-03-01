@@ -79,7 +79,6 @@ pipeline {
             sh '''
             echo "Останавливаем и удаляем контейнер..."
             docker stop $CONTAINER_NAME || true
-            docker rm $CONTAINER_NAME || true
             rm -rf allure.zip $ALLURE_RESULTS_DIR
             '''
         }
