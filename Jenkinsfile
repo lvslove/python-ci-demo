@@ -2,27 +2,21 @@ pipeline {
     agent any
 
     environment {
-    CONTAINER_NAME = 'python-tests-container-2'
-    ALLURE_RESULTS_DIR = 'target/allure-results'
-    REPO = 'lvslove/python-ci-demo'  // Формат для GitHub API
-    CREDENTIALS_ID = 'github_slalov'  // ID GitHub-токена в Jenkins Credentials
-    ACCOUNT = 'lvslove'  // GitHub username / organization
-}
-
+        CONTAINER_NAME = 'python-tests-container'
+        ALLURE_RESULTS_DIR = 'target/allure-results'
+        JOB_NAME = 'test'
+    }
 
     stages {
-        stage('Checkout') {
+
+        stage('Determine Changes') {
             steps {
-                withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
-                    sh '''
-                    echo "Клонируем репозиторий..."
-                    git clone https://$GITHUB_PAT@github.com/$REPO.git
-                    git checkout main
-                    '''
-                    
-                    script {
-                        env.GIT_COMMIT = sh(script: 'cd /app && git rev-parse HEAD', returnStdout: true).trim()
-                    }
+                sh 'ls -a'
+                sh'pwd'
+                script {
+                    def changes = sh(returnStdout: true, script: 'git diff-tree --no-commit-id --name-only -r HEAD').trim()
+                    // env.UI_CHANGED = changes.contains('frontend/').toString()
+                    // env.BACKEND_CHANGED = changes.contains('backend/').toString()
                 }
             }
         }
@@ -31,7 +25,8 @@ pipeline {
             steps {
                 sh '''
                 echo "Создаем контейнер для тестов..."
-                docker run -d --rm --name $CONTAINER_NAME -v $WORKSPACE:/app -w /app python:3.9 tail -f /dev/null
+                docker run -d --rm --name python-tests-container -v  /var/lib/docker/volumes/jenkins-data/_data/workspace/$JOB_NAME:/app -w /app python:3.9 tail -f /dev/null
+
                 '''
             }
         }
@@ -39,6 +34,9 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
+                echo "Проверяем файлы внутри контейнера..."
+                docker exec $CONTAINER_NAME ls -la /app
+                
                 echo "Устанавливаем зависимости..."
                 docker exec $CONTAINER_NAME pip install --no-cache-dir -r /app/requirements.txt
                 '''
@@ -77,40 +75,6 @@ pipeline {
                 }
             }
         }
-
-            success {
-                withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
-                    script {
-                        githubNotify(
-                            context: 'Jenkins',
-                            description: 'Build successful',
-                            status: 'SUCCESS',
-                            repo: env.REPO,
-                            credentialsId: env.CREDENTIALS_ID,
-                            sha: env.GIT_COMMIT,
-                            account: env.ACCOUNT  // Добавляем учетную запись GitHub
-                        )
-                    }
-                }
-            }
-
-            failure {
-                withCredentials([string(credentialsId: env.CREDENTIALS_ID, variable: 'GITHUB_PAT')]) {
-                    script {
-                        githubNotify(
-                            context: 'Jenkins',
-                            description: 'Build failed',
-                            status: 'FAILURE',
-                            repo: env.REPO,
-                            credentialsId: env.CREDENTIALS_ID,
-                            sha: env.GIT_COMMIT,
-                            account: env.ACCOUNT  // Добавляем учетную запись GitHub
-                        )
-                    }
-                }
-            }
-
-
         cleanup {
             echo 'Cleaning up...'
             sh '''
